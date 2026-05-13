@@ -19,16 +19,21 @@ export default function PatientFlow() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedSlot) return setError("Please select a time slot.");
+    if (!selectedSlot)
+        return setError("Please select a time slot.");
+
     try {
       const appt = await createBooking({ ...form, slot_id: selectedSlot.id });
       setSuccess(`Booked! Appointment #${appt.id} is ${appt.status}.`);
-    } catch (e) {
+    }
+
+    catch (e) {
       setError(e.message);
     }
   };
 
-  if (success) return <p style={{ color: "green" }}>{success}</p>;
+  if (success)
+    return <p style={{ color: "green" }}>{success}</p>;
 
   return (
     <div>

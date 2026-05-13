@@ -1,18 +1,24 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from database import engine, get_db, Base
+from database import SessionLocal, engine, get_db, Base
 import models, schemas, seed
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+    try:
+        seed.seed_db(db)
+        yield
 
-@app.on_event("startup")
-def on_startup():
-    db = next(get_db())
-    seed.seed_db(db)
+    finally:
+        db.close()
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # --- Physician & Slots ---
 @app.get("/physicians", response_model=list[schemas.PhysicianOut])
@@ -30,9 +36,10 @@ def available_slots(physician_id: int, db: Session = Depends(get_db)):
 @app.post("/appointments", response_model=schemas.AppointmentOut, status_code=201)
 def create_booking(req: schemas.BookingRequest, db: Session = Depends(get_db)):
     slot = db.query(models.AppointmentSlot).filter_by(id=req.slot_id, is_available=True).first()
+
     if not slot:
         raise HTTPException(400, "Slot unavailable or already booked")
-    
+
     patient = models.Patient(name=req.name, email=req.email, phone=req.phone)
     db.add(patient)
     db.flush()  # get patient.id before committing
@@ -46,6 +53,7 @@ def create_booking(req: schemas.BookingRequest, db: Session = Depends(get_db)):
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
+
     return appointment
 
 # --- Admin ---
@@ -56,21 +64,26 @@ def list_appointments(db: Session = Depends(get_db)):
 @app.put("/appointments/{appointment_id}/status", response_model=schemas.AppointmentOut)
 def update_status(appointment_id: int, body: schemas.StatusUpdate, db: Session = Depends(get_db)):
     appt = db.query(models.Appointment).filter_by(id=appointment_id).first()
+
     if not appt:
         raise HTTPException(404, "Appointment not found")
-    
+
     # Valid transitions only
     valid = {
         "pending": ["confirmed", "cancelled"],
         "confirmed": ["cancelled"],
         "cancelled": []
     }
-    if body.status not in valid[appt.status]:
-        raise HTTPException(400, f"Cannot transition from {appt.status} to {body.status}")
-    
-    appt.status = body.status
+
+    if body.status not in valid[appt.status.value]:
+        raise HTTPException(400, f"Cannot transition from {appt.status.value} to {body.status}")
+
+    appt.status.value = body.status
+
     if body.status == "cancelled":
         appt.slot.is_available = True  # release the slot
+
     db.commit()
     db.refresh(appt)
+
     return appt

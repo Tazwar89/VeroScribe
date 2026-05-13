@@ -12,4 +12,9 @@ export const updateStatus = (id, status) => fetch(`${BASE}/appointments/${id}/st
   method: "PUT",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ status })
-}).then(r => r.json());
+}).then(r => {
+  if (!r.ok)
+    throw new Error("Status update failed");
+
+  return r.json();
+});

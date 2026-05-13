@@ -15,7 +15,7 @@ def seed_db(db):
     slots = []
     base = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
 
-    # Create slots for the next 7 days, 4 slots per day (9am, 10am, 11am, 1pm)
+    # Create slots for the next 7 days, 4 slots per day (9am, 10am, 11am, 12pm)
     for day_offset in range(7):
         for hour_offset in range(4):
             for phys in physicians:
