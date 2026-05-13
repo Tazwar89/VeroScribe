@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
-import PatientFlow from "./pages/PatientFlow";
-import AdminDashboard from "./pages/AdminDashboard";
+import reactLogo from '/src/assets/react.svg'
+import viteLogo from '/src/assets/vite.svg'
+import heroImg from '/src/assets/hero.png'
+import '/src/App.css'
+import PatientFlow from "/src/pages/PatientFlow";
+import AdminDashboard from "/src/pages/AdminDashboard";
 
 export default function App() {
   const [tab, setTab] = useState("patient");

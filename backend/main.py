@@ -20,6 +20,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the VeroScribe API", "status": "running"}
+
 # --- Physician & Slots ---
 @app.get("/physicians", response_model=list[schemas.PhysicianOut])
 def list_physicians(db: Session = Depends(get_db)):
@@ -78,7 +82,7 @@ def update_status(appointment_id: int, body: schemas.StatusUpdate, db: Session =
     if body.status not in valid[appt.status.value]:
         raise HTTPException(400, f"Cannot transition from {appt.status.value} to {body.status}")
 
-    appt.status.value = body.status
+    appt.status = body.status
 
     if body.status == "cancelled":
         appt.slot.is_available = True  # release the slot
